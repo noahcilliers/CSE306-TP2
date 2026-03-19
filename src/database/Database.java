@@ -164,6 +164,8 @@ public class Database {
 	private List<Post> postList= new ArrayList<Post>();
 	private long nextPostId = 1;
 	
+	
+	
 	/**********
 	 * <p> 
 	 * 
