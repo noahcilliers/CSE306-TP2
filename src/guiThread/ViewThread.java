@@ -57,6 +57,7 @@ public class ViewThread {
 	
 	*/
 	
+	
 	// These are the application values required by the user interface
 	
 	private static double width = applicationMain.FoundationsMain.WINDOW_WIDTH;
@@ -110,11 +111,13 @@ public class ViewThread {
 	
 	//helper methods
 	public static void refreshPosts() {
-	    listView_Posts.getItems().setAll(theDatabase.getPostsForThread(currentThreadId));
+	    //listView_Posts.getItems().setAll(theDatabase.getPostsForThread(currentThreadId));
+	    thePostManager.refreshFromDatabase();
+	    listView_Posts.getItems().setAll(thePostManager.getAllPosts());
 	}
 	
 	
-	
+
 	
 	// These attributes are used to configure the page and populate it with this user's information
 	private static ViewThread theView;		// Used to determine if instantiation of the class
@@ -122,6 +125,7 @@ public class ViewThread {
 
 	// Reference for the in-memory database so this package has access
 	private static Database theDatabase = applicationMain.FoundationsMain.database;
+	private static PostManager thePostManager = applicationMain.FoundationsMain.postManager;
 	
 	protected static Stage theStage;			// The Stage that JavaFX has established for us
 	private static Pane theRootPane;			// The Pane that holds all the GUI widgets 
@@ -217,7 +221,7 @@ public class ViewThread {
 		 setupComboBoxUI(combo_ThreadSelect, "Dialog", 16, 160, width - 180, 50);
 
 		 combo_ThreadSelect.setItems(FXCollections.observableArrayList(
-		     "general", "cse360"  
+		     "general", "cse360", "my-posts"  
 		 ));
 		 combo_ThreadSelect.getSelectionModel().select(currentThreadId);
 
@@ -249,12 +253,21 @@ public class ViewThread {
 			            setText("");
 			            return;
 			        }
+
 			        int replyCount = applicationMain.FoundationsMain.database.getReplyCountForPost(p.getPostId());
 			        int readReplyCount = applicationMain.FoundationsMain.database.getReadReplyCountForPost(p.getPostId(), theUser);
 			        int totalNewReplies = replyCount - readReplyCount;
 			        String unreadPost = "";
 			        if(readReplyCount == 0) unreadPost = " (New Post)";
-			        setText(p.getAuthorUsername() + ": " + p.getContent() + unreadPost + "  (" + replyCount + " replies)" + " (" + totalNewReplies + " New Replies)");
+			        String text = "";
+			        if ("my-posts".equals(currentThreadId)) {
+			            text += "[" + p.getThreadId() + "] ";
+			        }
+			       
+			        text += p.getAuthorUsername() + ": " + p.getContent() + unreadPost + "  (" + replyCount + " replies)" + " (" + totalNewReplies + " New Replies)";
+			        setText(text);
+			        
+			   
 			    }
 			});
 		

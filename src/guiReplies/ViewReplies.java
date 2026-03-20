@@ -165,7 +165,6 @@ public class ViewReplies {
 		label_OriginalPost.setText("Post: " + thePost.getAuthorUsername() + ": " + thePost.getContent());
 	   
 		theDatabase.markAllRepliesAsRead(thePost.getPostId(), theUser);
-
 		
 	    refreshReplies();
 				
@@ -237,12 +236,11 @@ public class ViewReplies {
 		    setupButtonUI(button_DeletePost, "Dialog", 16, 150, Pos.CENTER, width - 170, 500);
 		    button_DeletePost.setOnAction((_) -> { ControllerReplies.deleteReply(); });
 		    
-		// Back button
-		setupButtonUI(button_Back, "Dialog", 18, 250, Pos.CENTER, 20, 540);
-		button_Back.setOnAction((_) -> { 
-			theDatabase.markAllRepliesAsRead(thePost.getPostId(), theUser);
-			ViewThread.displayThread(theStage, theUser);});
-		 
+			// Back button
+			setupButtonUI(button_Back, "Dialog", 18, 250, Pos.CENTER, 20, 540);
+			button_Back.setOnAction((_) -> { 
+				theDatabase.markAllRepliesAsRead(thePost.getPostId(), theUser);
+				ViewThread.displayThread(theStage, theUser);});
 		 
 		// Place all of the widget items into the Root Pane's list of children
 		theRootPane.getChildren().addAll(
