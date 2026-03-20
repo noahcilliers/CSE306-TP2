@@ -128,6 +128,7 @@ public class Database {
 	    		+ "emailAddress VARCHAR(255), "
 	            + "role VARCHAR(10))";
 	    statement.execute(invitationCodesTable);
+	    
 	}
 
 
@@ -153,6 +154,10 @@ public class Database {
 	}
 	
 	
+	
+	
+	
+	
 	/*******
 	 * <p> Data structure: postList </p>
 	 * 
@@ -163,6 +168,8 @@ public class Database {
 	
 	private List<Post> postList= new ArrayList<Post>();
 	private long nextPostId = 1;
+	
+	
 	
 	/**********
 	 * <p> 
