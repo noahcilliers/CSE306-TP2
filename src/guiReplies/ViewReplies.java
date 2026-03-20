@@ -164,6 +164,9 @@ public class ViewReplies {
 		label_UserDetails.setText("User: " + theUser.getUserName());
 		label_OriginalPost.setText("Post: " + thePost.getAuthorUsername() + ": " + thePost.getContent());
 	   
+		theDatabase.markAllRepliesAsRead(thePost.getPostId(), theUser);
+
+		
 	    refreshReplies();
 				
 		// Set the title for the window, display the page, and wait for the Admin to do something
@@ -236,7 +239,9 @@ public class ViewReplies {
 		    
 		// Back button
 		setupButtonUI(button_Back, "Dialog", 18, 250, Pos.CENTER, 20, 540);
-		button_Back.setOnAction((_) -> ViewThread.displayThread(theStage, theUser));
+		button_Back.setOnAction((_) -> { 
+			theDatabase.markAllRepliesAsRead(thePost.getPostId(), theUser);
+			ViewThread.displayThread(theStage, theUser);});
 		 
 		 
 		// Place all of the widget items into the Root Pane's list of children

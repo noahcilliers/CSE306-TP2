@@ -128,6 +128,13 @@ public class Database {
 	    		+ "emailAddress VARCHAR(255), "
 	            + "role VARCHAR(10))";
 	    statement.execute(invitationCodesTable);
+	    
+	    // Read receipts table
+	    String readRepliesTable = "CREATE TABLE IF NOT EXISTS ReadReplies ("
+	            + "userName VARCHAR(255), "
+	            + "replyId BIGINT, "
+	            + "PRIMARY KEY (userName, replyId))";
+	    statement.execute(readRepliesTable);
 	}
 
 
@@ -209,31 +216,6 @@ public class Database {
 	    }
 	    return result;
 	}
-	
-	/**********
-	 * <p> 
-	 * 
-	 * Title: getPostsFromUser Method. </p>
-	 * 
-	 * <p> Description: Public method gets all the posts under a certain username</p>
-	 * 
-	 * @author Noah Cilliers
-	 * 
-	 * 
-	 */
-	public List<Post> getPostsFromUser(String username) {
-	    List<Post> result = new ArrayList<>();
-	    for (Post p : postList) {
-	        if (p.getAuthorUsername().equals(username)) {
-	            result.add(p);
-	        }
-	    }
-	    return result;
-	}
-	
-	
-	
-	
 	/**********
 	 * <p> 
 	 * 
@@ -355,6 +337,98 @@ public class Database {
 	
 	public List<Reply> getAllReplies() {
 	    return new ArrayList<>(replies);
+	}
+	
+	/**
+	 * <p>
+	 * Title: markAllRepliesAsRead. </p>
+	 * 
+	 * <p> Description: Public method that will update the read receipt table of a post when given a postId and a User. </p>
+	 * @param postId
+	 * @param user
+	 * 
+	 * @author Roberto Zozaya
+	 */
+	
+	public void markAllRepliesAsRead(long postId, User user) {
+	    String sql = "INSERT INTO ReadReplies (userName, replyId) VALUES (?, ?)";
+
+	    try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+
+	        for (Reply r : replies) {
+	            if (r.getParentPostId() == postId) {
+	                try {
+	                    pstmt.setString(1, user.getUserName());
+	                    pstmt.setLong(2, r.getReplyId());
+	                    pstmt.executeUpdate();
+	                } catch (SQLException e) {
+	                    // Ignore duplicate insert (already read)
+	                }
+	            }
+	        }
+
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	}
+	
+	/**
+	 * <p>
+	 * Title: getReadReplyCountForPost. </p>
+	 * 
+	 * <p>
+	 * Description: public method that will return the amount of read replies given a postId and a user </p>
+	 * 
+	 * @param postId
+	 * @param user
+	 * @return
+	 * 
+	 * @author Roberto Zozaya
+	 */
+	public int getReadReplyCountForPost(long postId, User user) {
+	    int count = 0;
+
+	    for (Reply r : replies) {
+	        if (r.getParentPostId() == postId) {
+	            if (hasUserReadReply(user.getUserName(), r.getReplyId())) {
+	                count++;
+	            }
+	        }
+	    }
+
+	    return count;
+	}
+	
+	/**
+	 * <p>
+	 * Title: hasUserReadReply. </p>
+	 * 
+	 * <p>
+	 * Description: public method that will return a boolean if a reply in a post is 
+	 * found within a user's ReadReplies given a user's username and a replyId. </p>
+	 * 
+	 * @param userName
+	 * @param replyId
+	 * @return
+	 * 
+	 * @author Roberto Zozaya
+	 */
+	
+	public boolean hasUserReadReply(String userName, long replyId) {
+	    String sql = "SELECT 1 FROM ReadReplies WHERE userName = ? AND replyId = ?";
+
+	    try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+	        pstmt.setString(1, userName);
+	        pstmt.setLong(2, replyId);
+
+	        ResultSet rs = pstmt.executeQuery();
+	        return rs.next();
+
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+
+	    return false;
 	}
 	
 /*******
