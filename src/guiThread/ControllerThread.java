@@ -155,6 +155,16 @@ public class ControllerThread {
 
         guiRole1.ViewRole1Home.displayRole1Home(ViewThread.theStage, ViewThread.theUser);
     }
+    
+    public static void performSearch() {
+    	ViewThread.refreshPosts();
+    	
+    }
+    
+    public static void clearSearch() {
+    	ViewThread.textField_Search.clear();
+    	ViewThread.refreshPosts();
+    }
 
   
 

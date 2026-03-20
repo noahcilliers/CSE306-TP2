@@ -129,26 +129,6 @@ public class Database {
 	            + "role VARCHAR(10))";
 	    statement.execute(invitationCodesTable);
 	    
-	    //Create post tables
-	    String postTable = "CREATE TABLE IF NOT EXISTS postDB ("
-	    		+ "postID VARCHAR(36) PRIMARY KEY, "
-	    		+ "title VARCHAR(100) NOT NULL, "
-	    		+ "body VARCHAR(2000) NOT NULL, "
-	    		+ "authorUserName VARCHAR(255), "
-	    		+ "timestamp TIMESTAMP NOT NULL)";
-	    statement.execute(postTable);
-	    
-	    //create reply tables
-	    String replyTable = "CREATE TABLE IF NOT EXISTS replyDB ("
-	    		+ "replyID VARCHAR(36) PRIMARY KEY, "
-	    		+ "postID VARCHAR(36) NOT NULL, "
-	    		+ "body VARCHAR(2000) NOT NULL, "
-	    		+ "authorUserName VARCHAR(255), "
-	    		+ "timestamp TIMESTAMP NOT NULL)";
-	    statement.execute(replyTable);
-	    
-	    //index keeps track of replys to postIDs
-	    statement.execute("CREATE INDEX IF NOT EXISTS idx_reply_postID ON replyDB(postID)");
 	}
 
 
@@ -172,6 +152,8 @@ public class Database {
 	    }
 		return true;
 	}
+	
+	
 	
 	
 	
