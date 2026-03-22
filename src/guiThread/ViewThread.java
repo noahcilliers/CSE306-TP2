@@ -57,6 +57,7 @@ public class ViewThread {
 	
 	*/
 	
+	
 	// These are the application values required by the user interface
 	
 	private static double width = applicationMain.FoundationsMain.WINDOW_WIDTH;
@@ -70,7 +71,13 @@ public class ViewThread {
 	protected static Label label_PageTitle = new Label();
 	protected static Label label_UserDetails = new Label();
 	protected static Button button_UpdateThisUser = new Button("Account Update");
-
+	
+	//Search area berto
+	protected static Label label_Search = new Label("Search posts:");
+	protected static TextField textField_Search = new TextField();
+	protected static Button button_Search = new Button("Search");
+	protected static Button button_ClearSearch = new Button("Clear");
+	
 	// This is a separator and it is used to partition the GUI for various tasks
 	private static Line line_Separator1 = new Line(20, 95, width-20, 95);
 		
@@ -110,7 +117,19 @@ public class ViewThread {
 	
 	//helper methods
 	public static void refreshPosts() {
-	    listView_Posts.getItems().setAll(theDatabase.getPostsForThread(currentThreadId));
+	    //listView_Posts.getItems().setAll(theDatabase.getPostsForThread(currentThreadId));
+	    thePostManager.refreshFromDatabase();
+	    listView_Posts.getItems().setAll(thePostManager.getAllPosts());
+	    
+	    //Berto added these to refreash search
+	    String searchText = textField_Search.getText() == null ? "" : textField_Search.getText().trim();
+	    if(searchText.isEmpty()) 
+	    {
+	    	listView_Posts.getItems().setAll(thePostManager.getAllPosts());
+	    }else
+	    {
+	    	listView_Posts.getItems().setAll(thePostManager.searchPosts(searchText));
+	    }
 	}
 	
 	
@@ -122,6 +141,7 @@ public class ViewThread {
 
 	// Reference for the in-memory database so this package has access
 	private static Database theDatabase = applicationMain.FoundationsMain.database;
+	private static PostManager thePostManager = applicationMain.FoundationsMain.postManager;
 	
 	protected static Stage theStage;			// The Stage that JavaFX has established for us
 	private static Pane theRootPane;			// The Pane that holds all the GUI widgets 
@@ -207,7 +227,7 @@ public class ViewThread {
 		setupLabelUI(label_UserDetails, "Arial", 20, width, Pos.BASELINE_LEFT, 20, 55);
 		
 		/// thread title
-		setupLabelUI(label_ThreadTitle, "Arial", 20, width, Pos.BASELINE_LEFT, 20, 105);
+		setupLabelUI(label_ThreadTitle, "Arial", 20, width, Pos.BASELINE_LEFT, 20, 135);
 		
 	
 		/// GUI Area 2
@@ -217,7 +237,7 @@ public class ViewThread {
 		 setupComboBoxUI(combo_ThreadSelect, "Dialog", 16, 160, width - 180, 50);
 
 		 combo_ThreadSelect.setItems(FXCollections.observableArrayList(
-		     "general", "cse360"  
+		     "general", "cse360", "my-posts"  
 		 ));
 		 combo_ThreadSelect.getSelectionModel().select(currentThreadId);
 
@@ -231,12 +251,19 @@ public class ViewThread {
 		     refreshPosts();
 		 });
 		 
-		 
+		 //search setup - berto
+		 setupLabelUI(label_Search, "Arial", 16, width, Pos.BASELINE_LEFT, 20, 105);
+		 setupTextUI(textField_Search, "Dialog", 16, 250, Pos.BASELINE_LEFT, 130, 105, true);
+		 setupButtonUI(button_Search, "Dialog", 14, 100, Pos.CENTER, 400,100);
+		 button_Search.setOnAction((_) ->{ ControllerThread.performSearch();});
+		 setupButtonUI(button_ClearSearch, "Dialog", 14, 100, Pos.CENTER, 510, 100);
+		 button_ClearSearch.setOnAction((_) -> { ControllerThread.clearSearch(); });
+		 textField_Search.setOnAction((_) -> { ControllerThread.performSearch(); });
 		 
 		/// GUI Area 3
 		
 		 listView_Posts.setLayoutX(20);
-		 listView_Posts.setLayoutY(140);
+		 listView_Posts.setLayoutY(170);
 		 listView_Posts.setPrefWidth(width - 40);
 		 listView_Posts.setPrefHeight(260);
 		 
@@ -251,7 +278,15 @@ public class ViewThread {
 			        }
 
 			        int replyCount = applicationMain.FoundationsMain.database.getReplyCountForPost(p.getPostId());
-			        setText(p.getAuthorUsername() + ": " + p.getContent() + "  (" + replyCount + " replies)");
+			        String text = "";
+			        if ("my-posts".equals(currentThreadId)) {
+			            text += "[" + p.getThreadId() + "] ";
+			        }
+			       
+			        text += p.getAuthorUsername() + ": " + p.getContent() + " (" + replyCount + " replies)";
+			        setText(text);
+			        
+			   
 			    }
 			});
 		
@@ -282,7 +317,7 @@ public class ViewThread {
 			label_PageTitle, label_UserDetails, line_Separator1,
     		button_Post, button_Back, combo_ThreadSelect,
     		label_NewPost, textArea_NewPost, listView_Posts, label_ThreadTitle, button_ViewReplies, button_DeletePost
-    		);
+    		, label_Search, textField_Search, button_Search, button_ClearSearch); // added these for search - berto
 		
 		// With theRootPane set up with the common widgets, it is up to displayAdminHome to show
 		// that Pane to the user after the dynamic elements of the widgets have been updated.
