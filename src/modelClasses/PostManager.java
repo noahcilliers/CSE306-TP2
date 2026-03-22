@@ -1,5 +1,7 @@
 package modelClasses;
 import database.Database;
+
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import entityClasses.Post;
@@ -18,7 +20,7 @@ import entityClasses.Post;
  */
 public class PostManager {
 	// variables
-	private Database database;
+	 private Database database;
 	 private List<Post> allPosts = new ArrayList<>();
 	 private String currentThreadId = "general";
 	
@@ -80,7 +82,13 @@ public class PostManager {
 
 	    // First save to database
 	    boolean ok = database.addPost(threadId, authorUsername, content);
-
+	    try {
+	    	database.insertPost(threadId, authorUsername, content);
+	    	database.dumpPosts();
+	    	}
+	    catch(SQLException e) {
+	    	e.printStackTrace();
+	    };
 	    if (ok) {
 	        // Reload posts from database 
 	        refreshFromDatabase();

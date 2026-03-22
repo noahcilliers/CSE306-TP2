@@ -1,10 +1,6 @@
 package database;
 
 import java.sql.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -63,6 +59,13 @@ public class Database {
 	private boolean currentNewRole1;
 	private boolean currentNewRole2;
 
+		// for post list data structure
+	private List<Post> postList= new ArrayList<Post>();
+	private long nextPostId = 1;
+		// for reply list data structure
+	private final List<Reply> replies = new ArrayList<>();
+	private long nextReplyId = 1;
+	
 	/*******
 	 * <p> Method: Database </p>
 	 * 
@@ -96,8 +99,74 @@ public class Database {
 		} catch (ClassNotFoundException e) {
 			System.err.println("JDBC Driver not found: " + e.getMessage());
 		}
+		try {
+			initPostList();
+			initReplyList();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		};
 	}
 
+/*******
+ * <p> Method: initPostList </p>
+ * 
+ * <p> Description: Used to load all post data from the sql database into the in memory data structure used for program functionality.
+ * 
+ * Called at the beginning of database connection before any user operations can take place to influence the data stored..</p>
+ *
+ * @throws SQLException if there is an issues accessing the user posts database.
+ * 
+ */
+	private void initPostList() throws SQLException {
+		String query = "SELECT * FROM USERPOSTS";
+		ResultSet resultSet = statement.executeQuery(query);
+		ResultSetMetaData meta = resultSet.getMetaData();
+		System.out.println("Initializing Post list");
+		while (resultSet.next()) {
+			for (int i = 0; i < meta.getColumnCount(); i=i+4) {
+				String postId = resultSet.getString(i+1);
+				String threadId = resultSet.getString(i+2);
+				String authorUsername = resultSet.getString(i+ 3);
+				String contents = resultSet.getString(i+ 4);
+				System.out.println("postId: " + postId + "threadId: " + threadId + " User: " + authorUsername + " contents: " + contents);
+				addPost(threadId, authorUsername, contents);
+			}
+			
+			System.out.println();
+		}
+		resultSet.close();
+	};
+	
+	
+/*******
+ * <p> Method: initReplyList </p>
+ * 
+ * <p> Description: Used to load all reply data from the sql database into the in memory data structure used for program functionality.
+ * 
+ * Called at the beginning of database connection before any user operations can take place to influence the data stored..</p>
+ *
+ * @throws SQLException if there is an issues accessing the user posts database.
+ * 
+ */
+	private void initReplyList() throws SQLException {
+		String query = "SELECT * FROM USERREPLYS";
+		ResultSet resultSet = statement.executeQuery(query);
+		ResultSetMetaData meta = resultSet.getMetaData();
+		System.out.println("Initializing Reply list");
+		while (resultSet.next()) {
+			for (int i = 0; i < meta.getColumnCount(); i=i+4) {
+				String postId = resultSet.getString(i+1);
+				String parentPostId = resultSet.getString(i+2);
+				String authorUsername = resultSet.getString(i+ 3);
+				String contents = resultSet.getString(i+ 4);
+				System.out.println("replyId: " + postId + "parentPostId: " + parentPostId + " User: " + authorUsername + " contents: " + contents);
+				addReply(Long.valueOf(parentPostId), authorUsername, contents);
+			}
+			
+			System.out.println();
+		}
+		resultSet.close();
+	};
 	
 /*******
  * <p> Method: createTables </p>
@@ -128,9 +197,123 @@ public class Database {
 	    		+ "emailAddress VARCHAR(255), "
 	            + "role VARCHAR(10))";
 	    statement.execute(invitationCodesTable);
+	    
+	    // Create the user posts table
+	    String userPostsTable = "CREATE TABLE IF NOT EXISTS userPosts ("
+	    		//+ "postId INT AUTO_INCREMENT PRIMARY KEY, "
+	    		+ "postId VARCHAR(255), "
+	    		+ "thread VARCHAR(255), "
+	    		+ "authorUsername VARCHAR(255), "
+	            + "contents VARCHAR(1000))";
+	    statement.execute(userPostsTable);
+	    
+	    
+	 // Create the reply table
+	    String userReplyTable = "CREATE TABLE IF NOT EXISTS userReplys ("
+	    		//+ "postId INT AUTO_INCREMENT PRIMARY KEY, "
+	    		+ "replyId VARCHAR(255), "
+	    		+ "parentPostId VARCHAR(255), "
+	    		+ "authorUsername VARCHAR(255), "
+	            + "contents VARCHAR(1000))";
+	    statement.execute(userReplyTable);
+	    
+	    
 	}
 
 
+/*******
+* <p> Method: insertPost(User user, String postText) </p>
+* 
+* <p> Description: Creates a new row in the database using the user parameter. </p>
+* 
+* @throws SQLException when there is an issue creating the SQL command or executing it.
+* 
+* @param threadId specifies the name of the thread to record a post for.
+* 
+* @param authorUsername name of the user who created a new post.
+* 
+* @param contents up to 1000 characters of text to be stored in the post.
+* 
+*/
+	public void insertPost(String threadId, String authorUsername, String contents) throws SQLException {
+		String insertPost = "INSERT INTO userPosts (postID, thread, authorUsername, contents) VALUES (?, ?, ?, ?)";
+		try (PreparedStatement pstmt = connection.prepareStatement(insertPost)) {
+			pstmt.setString(1, String.valueOf(nextPostId));
+			pstmt.setString(2, threadId);		
+			pstmt.setString(3, authorUsername);
+			pstmt.setString(4, contents);		
+			pstmt.executeUpdate();
+		};
+	};
+
+/******
+* <p> Method: deletePostFromDB(User user, String postText) </p>
+* 
+* <p> Description: Overwrites the authorUsername and post contents sections in the sql table to say [Deleted] and [Post deleted] respectively. </p>
+* 
+* @throws SQLException when there is an issue creating the SQL command or executing it.
+* 
+* @param postId specifies the number associated with the post to be overwritten/deleted.
+* 
+*/	
+	private void deletePostFromDB(long postId) throws SQLException{
+		String deletePost = "UPDATE userPosts SET authorUsername = ?, contents = ? where postID = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(deletePost)) {
+			pstmt.setString(1, "[Deleted]");
+			pstmt.setString(2, "[Post deleted]");
+			pstmt.setString(3, String.valueOf(postId));
+			pstmt.executeUpdate();
+		};
+	};
+	
+/*******
+* <p> Method: insertReply(User user, String postText) </p>
+* 
+* <p> Description: Creates a new row in the database using the user parameter. </p>
+* 
+* @throws SQLException when there is an issue creating the SQL command or executing it.
+* 
+* @param threadId specifies the name of the thread to record a post for.
+* 
+* @param authorUsername name of the user who created a new post.
+* 
+* @param contents up to 1000 characters of text to be stored in the post.
+* 
+*/
+	public void insertReply(String parentPostId, String authorUsername, String contents) throws SQLException {
+		String insertReply = "INSERT INTO userReplys (replyID, parentPostId, authorUsername, contents) VALUES (?, ?, ?, ?)";
+		try (PreparedStatement pstmt = connection.prepareStatement(insertReply)) {
+			pstmt.setString(1, String.valueOf(nextReplyId));
+			pstmt.setString(2, parentPostId);		
+			pstmt.setString(3, authorUsername);
+			pstmt.setString(4, contents);		
+			pstmt.executeUpdate();
+		};
+	};
+	
+/******
+* <p> Method: deletePostFromDB(User user, String postText) </p>
+* 
+* <p> Description: Overwrites the authorUsername and post contents sections in the sql table to say [Deleted] and [Post deleted] respectively. </p>
+* 
+* @throws SQLException when there is an issue creating the SQL command or executing it.
+* 
+* @param postId specifies the number associated with the post to be overwritten/deleted.
+* 
+*/	
+	private void deleteReplyFromDB(long replyId) throws SQLException{
+		String deleteReply = "UPDATE userReplys SET authorUsername = ?, contents = ? where replyID = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(deleteReply)) {
+			pstmt.setString(1, "[Deleted]");
+			pstmt.setString(2, "[Reply deleted]");
+			pstmt.setString(3, String.valueOf(replyId));
+			pstmt.executeUpdate();
+			System.out.println("replyId given to delete reply functio: " + String.valueOf(replyId));
+			dumpReplys();
+		};
+	};
+	
+	
 /*******
  * <p> Method: isDatabaseEmpty </p>
  * 
@@ -161,8 +344,7 @@ public class Database {
 	 * 
 	 */
 	
-	private List<Post> postList= new ArrayList<Post>();
-	private long nextPostId = 1;
+	
 	
 	/**********
 	 * <p> 
@@ -178,8 +360,9 @@ public class Database {
 	public boolean addPost(String threadId, String authorUsername, String contents) { 
 	
 		if(contents == null || contents.trim().isEmpty()) {return false;}
-	    Post p = new Post(
-	            nextPostId++,
+	    nextPostId++;
+		Post p = new Post(
+	            nextPostId,
 	            threadId,
 	            authorUsername,
 	            contents.trim()
@@ -188,6 +371,8 @@ public class Database {
 	    postList.add(p);
 	    return true;
 	}
+	
+	
 	
 	/**********
 	 * <p> 
@@ -225,6 +410,12 @@ public class Database {
 	        if (p.getPostId() == postId) {
 	            p.setContent("[Post deleted]");
 	            p.setAuthorUsername("[Deleted]");
+	            try {
+	            	deletePostFromDB(postId);
+	            }
+	            catch (SQLException e) {
+	            	e.printStackTrace();
+	            };
 	            return true;
 	        }
 	    }
@@ -241,8 +432,7 @@ public class Database {
 	 * 
 	 */
 	
-	private final List<Reply> replies = new ArrayList<>();
-	private long nextReplyId = 1;
+	
 	
 	/**********
 	 * <p> 
@@ -284,6 +474,13 @@ public class Database {
 	        if (r.getReplyId() == replyId) {
 	            r.setContent("[Reply deleted]");
 	            r.setAuthorUsername("[Deleted]");
+	            try {
+	            		//weird off by 1 error when deleting replies
+	            	deleteReplyFromDB(replyId + 1);
+	            }
+	            catch (SQLException e) {
+	            	e.printStackTrace();
+	            };
 	            return true;
 	        }
 	    }
@@ -1525,6 +1722,53 @@ public class Database {
 		resultSet.close();
 	}
 
+	/*******
+	 * <p> Debugging method</p>
+	 * 
+	 * <p> Description: Debugging method that dumps the user posts database of the console.</p>
+	 * 
+	 * @throws SQLException if there is an issues accessing the user posts database.
+	 * 
+	 */
+	public void dumpPosts() throws SQLException {
+		String query = "SELECT * FROM USERPOSTS";
+		ResultSet resultSet = statement.executeQuery(query);
+		ResultSetMetaData meta = resultSet.getMetaData();
+		while (resultSet.next()) {
+			for (int i = 0; i < meta.getColumnCount(); i++) {
+				System.out.println(
+					meta.getColumnLabel(i + 1) + ": " +
+					resultSet.getString(i + 1)
+				);
+			}
+			System.out.println();
+		}
+		resultSet.close();
+	}
+	
+	/*******
+	 * <p> Debugging method</p>
+	 * 
+	 * <p> Description: Debugging method that dumps the user replys database of the console.</p>
+	 * 
+	 * @throws SQLException if there is an issues accessing the user posts database.
+	 * 
+	 */
+	public void dumpReplys() throws SQLException {
+		String query = "SELECT * FROM USERREPLYS";
+		ResultSet resultSet = statement.executeQuery(query);
+		ResultSetMetaData meta = resultSet.getMetaData();
+		while (resultSet.next()) {
+			for (int i = 0; i < meta.getColumnCount(); i++) {
+				System.out.println(
+					meta.getColumnLabel(i + 1) + ": " +
+					resultSet.getString(i + 1)
+				);
+			}
+			System.out.println();
+		}
+		resultSet.close();
+	}
 
 	/*******
 	 * <p> Method: void closeConnection()</p>
