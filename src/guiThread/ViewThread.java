@@ -133,7 +133,7 @@ public class ViewThread {
 	}
 	
 	
-	
+
 	
 	// These attributes are used to configure the page and populate it with this user's information
 	private static ViewThread theView;		// Used to determine if instantiation of the class
@@ -278,12 +278,16 @@ public class ViewThread {
 			        }
 
 			        int replyCount = applicationMain.FoundationsMain.database.getReplyCountForPost(p.getPostId());
+			        int readReplyCount = applicationMain.FoundationsMain.database.getReadReplyCountForPost(p.getPostId(), theUser);
+			        int totalNewReplies = replyCount - readReplyCount;
+			        String unreadPost = "";
+			        if(readReplyCount == 0) unreadPost = " (New Post)";
 			        String text = "";
 			        if ("my-posts".equals(currentThreadId)) {
 			            text += "[" + p.getThreadId() + "] ";
 			        }
 			       
-			        text += p.getAuthorUsername() + ": " + p.getContent() + " (" + replyCount + " replies)";
+			        text += p.getAuthorUsername() + ": " + p.getContent() + unreadPost + "  (" + replyCount + " replies)" + " (" + totalNewReplies + " New Replies)";
 			        setText(text);
 			        
 			   
